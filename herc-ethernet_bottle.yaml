@@ -1,0 +1,61 @@
+esphome:
+  name: herc-ethernet_bottle
+  friendly_name: Herc Ethernet Bottle
+
+esp32:
+  board: wesp32
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "nbsifqWO5h+a0eJvA4QX8T6okfDzVgSj1kpw9DXofvI="
+
+ota:
+  password: "3fdaa44d9445141de9c1626fb3125517"
+
+ethernet:
+  type: RTL8201
+  mdc_pin: GPIO16
+  mdio_pin: GPIO17
+  clk_mode: GPIO0_IN
+  phy_addr: 0
+
+#wifi:
+ # ssid: !secret wifi_ssid
+  #password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ##ap:
+    #ssid: "Herc-Hotel Fallback Hotspot"
+    #password: "paxHlNnd9Dc3"
+
+mqtt:
+  broker: 10.1.70.244
+ # username: homeassistant
+ # password: zah9xeiwooce1ceedaing9eemeebaer8ie5Ievoo8zieyi0Ungoh8pee9Xiat7qu
+
+i2c:
+  sda: 15
+  scl: 4
+  scan: true
+  id: bus_a
+
+sensor:
+  - platform: bme280
+    temperature:
+      name: "Herc Ethernet Bottle Temperature"
+      oversampling: 16x
+    pressure:
+      name: "Herc Ethernet Bottle Pressure"
+    humidity:
+      name: "Herc Ethernet Bottle Humidity"
+    address: 0x77
+    update_interval: 60000ms
+ 
+#captive_portal:
+    

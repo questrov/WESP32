@@ -1,0 +1,191 @@
+esphome:
+  name: herc-hotel
+  friendly_name: Herc Hotel
+
+esp32:
+  board: wesp32
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "nbsifqWO5h+a0eJvA4QX8T6okfDzVgSj1kpw9DXofvI="
+
+ota:
+  password: "3fdaa44d9445141de9c1626fb3125517"
+
+ethernet:
+  type: RTL8201
+  mdc_pin: GPIO16
+  mdio_pin: GPIO17
+  clk_mode: GPIO0_IN
+  phy_addr: 0
+
+#wifi:
+ # ssid: !secret wifi_ssid
+  #password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ##ap:
+    #ssid: "Herc-Hotel Fallback Hotspot"
+    #password: "paxHlNnd9Dc3"
+
+mqtt:
+  broker: 192.168.86.33
+  username: homeassistant
+  password: zah9xeiwooce1ceedaing9eemeebaer8ie5Ievoo8zieyi0Ungoh8pee9Xiat7qu
+
+i2c:
+  sda: 15
+  scl: 4
+  scan: true
+  id: bus_a
+
+# Use HSPI pins
+spi:
+  clk_pin: 14
+  miso_pin: 12
+  mosi_pin: 13
+  
+ads1115:
+  - address: 0x48
+
+sensor:
+  - platform: bme280
+    temperature:
+      name: "Herc Temperature"
+      oversampling: 16x
+    pressure:
+      name: "Herc Pressure"
+    humidity:
+      name: "Herc Humidity"
+    address: 0x77
+    update_interval: 60000ms
+  - platform: ads1115
+    multiplexer: 'A0_GND'
+    gain: 6.144
+    resolution: "12 bits"
+    update_interval: 60000ms
+    name: "ADS1115 Channel A0-GND"
+
+# AC Power Monitor
+  - platform: atm90e32
+    cs_pin: 5
+    phase_a:
+      voltage:
+        name: "EMON Line Voltage A"
+      current:
+        name: "EMON CT1 Current"
+      power:
+        name: "EMON Active Power CT1"
+      reactive_power:
+        name: "EMON Reactive Power CT1"
+      power_factor:
+        name: "EMON Power Factor CT1"
+      gain_voltage: 7305
+      gain_ct: 39473
+    frequency:
+      name: "EMON Line Frequency"
+    chip_temperature:
+      name: "EMON Chip Temperature"
+    line_frequency: 60Hz
+    current_phases: 2
+    gain_pga: 2X
+    update_interval: 100ms
+
+# Relay Board 1 (Lights) 
+pcf8574:
+  - id: 'pcf8574_hub'
+    address: 0x27
+    pcf8575: false
+
+# Individual outputs
+switch:
+  - platform: gpio
+    name: "Light Bank 1"
+    pin:
+      pcf8574: pcf8574_hub
+      # Use pin number 0
+      number: 0
+      # One of INPUT or OUTPUT
+      mode:
+        output: true
+      inverted: true
+  - platform: gpio
+    name: "Light Bank 2"
+    pin:
+      pcf8574: pcf8574_hub
+      # Use pin number 1
+      number: 1
+      # One of INPUT or OUTPUT
+      mode:
+        output: true
+      inverted: true
+  - platform: gpio
+    name: "Light Bank 3"
+    pin:
+      pcf8574: pcf8574_hub
+      # Use pin number 2
+      number: 2
+      # One of INPUT or OUTPUT
+      mode:
+        output: true
+      inverted: true
+  - platform: gpio
+    name: "Light Bank 4"
+    pin:
+      pcf8574: pcf8574_hub
+      # Use pin number 3
+      number: 3
+      # One of INPUT or OUTPUT
+      mode:
+        output: true
+      inverted: true
+  - platform: gpio
+    name: "Light Bank 5"
+    pin:
+      pcf8574: pcf8574_hub
+      # Use pin number 4
+      number: 4
+      # One of INPUT or OUTPUT
+      mode:
+        output: true
+      inverted: true
+  - platform: gpio
+    name: "Light Bank 6"
+    pin:
+      pcf8574: pcf8574_hub
+      # Use pin number 5
+      number: 5
+      # One of INPUT or OUTPUT
+      mode:
+        output: true
+      inverted: true
+  - platform: gpio
+    name: "Light Bank 7"
+    pin:
+      pcf8574: pcf8574_hub
+      # Use pin number 16
+      number: 6
+      # One of INPUT or OUTPUT
+      mode:
+        output: true
+      inverted: true
+  - platform: gpio
+    name: "Light Bank 8"
+    pin:
+      pcf8574: pcf8574_hub
+      # Use pin number 7
+      number: 7
+      # One of INPUT or OUTPUT
+      mode:
+        output: true
+      inverted: true
+
+
+#captive_portal:
+    
