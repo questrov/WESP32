@@ -1,0 +1,253 @@
+esphome:
+  name: wesp32-cam
+  friendly_name: WESP32 Cam
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "zEjj7zkG7yGqUTbEyvCTKylp+/mrIkFGEhilr0bbzsQ="
+
+ota:
+  password: "3f45b09e9d537aff94ab98f3518eadb0"
+
+ethernet:
+  type: RTL8201
+  mdc_pin: GPIO16
+  mdio_pin: GPIO17
+  clk_mode: GPIO0_IN
+  phy_addr: 0  
+
+mqtt:
+  broker: raspberrypi4l.local      
+
+web_server:
+  port: 80    
+
+i2c:
+  sda: 15
+  scl: 4
+  scan: true
+  id: bus_a
+
+sensor:
+  - platform: bme280_i2c
+    temperature:
+      name: "BME280 Temperature"
+      id: bme280_temperature
+      oversampling: 16x
+      on_value:
+        then:
+          - mqtt.publish:
+              topic: wesp32-cinema-cam/bme280_temperature
+              payload: !lambda 'return to_string(x);'
+    pressure:
+      name: "BME280 Pressure"
+      id: bme280_pressure
+      on_value:
+        then:
+          - mqtt.publish:
+              topic: wesp32-cinema-cam/bme280_pressure
+              payload: !lambda 'return to_string(x);'
+    humidity:
+      name: "BME280 Humidity"
+      id: bme280_humidity
+      on_value:
+        then:
+          - mqtt.publish:
+              topic: wesp32-cinema-cam/bme280_humidity
+              payload: !lambda 'return to_string(x);'
+    address: 0x77
+    update_interval: 60s
+
+  - platform: mpu6050
+    address: 0x68
+    accel_x:
+      name: "MPU6050 Accel X"
+      id: MPU6050_Accel_X
+    accel_y:
+      name: "MPU6050 Accel Y"
+      id: MPU6050_Accel_Y
+    accel_z:
+      name: "MPU6050 Accel z"
+      id: MPU6050_Accel_Z
+    gyro_x:
+      name: "MPU6050 Gyro X"
+    gyro_y:
+      name: "MPU6050 Gyro Y"
+    gyro_z:
+      name: "MPU6050 Gyro z"
+    temperature:
+      name: "MPU6050 Temperature"
+    update_interval: 1s
+
+  - platform: template
+    name: "MPU6050 Pitch"
+    update_interval: 1s
+    lambda: |-
+      float accelX = id(MPU6050_Accel_X).state;
+      float accelY = id(MPU6050_Accel_Y).state;
+      float accelZ = id(MPU6050_Accel_Z).state;
+      return atan2(accelY, sqrt(accelX * accelX + accelZ * accelZ)) * 180 / PI;
+
+  - platform: template
+    name: "MPU6050 Roll"
+    update_interval: 1s
+    lambda: |-
+      float accelX = id(MPU6050_Accel_X).state;
+      float accelY = id(MPU6050_Accel_Y).state;
+      float accelZ = id(MPU6050_Accel_Z).state;
+      return atan2(-accelX, sqrt(accelY * accelY + accelZ * accelZ)) * 180 / PI;    
+
+  - platform: template
+    name: "MPU6050 Pitch"
+    id: mpu6050_pitch
+    update_interval: 1s
+    lambda: |-
+      float accelX = id(MPU6050_Accel_X).state;
+      float accelY = id(MPU6050_Accel_Y).state;
+      float accelZ = id(MPU6050_Accel_Z).state;
+      return atan2(accelY, sqrt(accelX * accelX + accelZ * accelZ)) * 180 / PI;
+    on_value:
+      then:
+        - mqtt.publish:
+            topic: wesp32-cinema-cam/pitch
+            payload: !lambda 'return to_string(x);'
+
+  - platform: template
+    name: "MPU6050 Roll"
+    id: mpu6050_roll
+    update_interval: 1s
+    lambda: |-
+      float accelX = id(MPU6050_Accel_X).state;
+      float accelY = id(MPU6050_Accel_Y).state;
+      float accelZ = id(MPU6050_Accel_Z).state;
+      return atan2(-accelX, sqrt(accelY * accelY + accelZ * accelZ)) * 180 / PI;
+    on_value:
+      then:
+        - mqtt.publish:
+            topic: wesp32-cinema-cam/roll
+            payload: !lambda 'return to_string(x);'      
+output:
+  - platform: ledc
+    id: pwm_output
+    pin: 23
+    frequency: 50Hz
+
+  - platform: ledc
+    id: pwm_output_switch
+    pin: 32
+    frequency: 50Hz
+
+  - platform: ledc
+    id: pwm_output_switch_2
+    pin: 18
+    frequency: 50Hz    
+
+servo:
+  - id: servo_control
+    output: pwm_output
+    auto_detach_time: 1s
+    transition_length: 0s
+
+  - id: servo_switch
+    output: pwm_output_switch
+    transition_length: 0s   
+
+  - id: servo_switch_2
+    output: pwm_output_switch_2
+    transition_length: 0s  
+
+number:
+  - platform: template
+    name: servo position
+    min_value: -100
+    max_value: 100
+    update_interval: 5s 
+    mode: slider #slider/box
+    step: 1
+    set_action:
+      then:
+        - servo.write:
+           id: servo_control
+           level: !lambda 'return x / 100.0;'
+        - mqtt.publish:
+            topic: wesp32-cinema-cam/servo_position
+            payload: !lambda 'return to_string(x);'    
+switch:
+  - platform: gpio
+    name: "Relay 1"
+    pin: GPIO5
+    id: relay1
+    inverted: false
+    on_turn_on:
+      then:
+        - mqtt.publish:
+            topic: wesp32-cinema-cam/relay1
+            payload: "1"
+    on_turn_off:
+      then:
+        - mqtt.publish:
+            topic: wesp32-cinema-cam/relay1
+            payload: "0"
+
+  - platform: gpio
+    name: "Relay 2"
+    pin: GPIO14
+    id: relay2
+    inverted: false
+    on_turn_on:
+      then:
+        - mqtt.publish:
+            topic: "wesp32-cinema-cam/relay2"
+            payload: "1"
+    on_turn_off:
+      then:
+        - mqtt.publish:
+            topic: "wesp32-cinema-cam/relay2"
+            payload: "0"
+
+  - platform: template
+    name: "PWM Output"
+    id: servo_switch_1
+    optimistic: true 
+    turn_on_action:
+      - output.set_level:
+          id: pwm_output_switch
+          level: 11.0%
+      - mqtt.publish:
+          topic: "wesp32-cinema-cam/pwm_output/state"
+          payload: "1"          
+    turn_off_action:
+      - output.set_level:
+          id: pwm_output_switch
+          level: 4.0% 
+      - mqtt.publish:
+          topic: "wesp32-cinema-cam/pwm_output/state"
+          payload: "0"                               
+
+  - platform: template
+    name: "PWM Output_2"
+    id: servo_switch_template_2
+    optimistic: true 
+    turn_on_action:
+      - output.set_level:
+          id: pwm_output_switch_2
+          level: 11.0%
+      - mqtt.publish:
+          topic: "wesp32-cinema-cam/pwm_output_2/state"
+          payload: "1"          
+    turn_off_action:
+      - output.set_level:
+          id: pwm_output_switch_2
+          level: 4.0%        
+      - mqtt.publish:
+          topic: "wesp32-cinema-cam/pwm_output_2/state"
+          payload: "0"   
